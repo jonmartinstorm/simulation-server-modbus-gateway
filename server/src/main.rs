@@ -37,6 +37,7 @@ async fn main() {
         inflow: 20.0,
         inflow_mean: 20.0,
         inflow_stddev: 3.0,
+        max_inflow: 40.0,
         outflow: 20.0,
         max_outflow: 40.0,
         set_level: 1000.0,
@@ -127,11 +128,8 @@ async fn handle_gw(mut stream: TcpStream, rxout: watch::Receiver<WaterTank>, txi
         // In a loop, read data from the socket and write the data back.
         loop {
             let tank = *rxout.borrow();
-            let max = 65535 as f32 / tank.height;
-            let tank_level = (tank.level * max) as u16;
-            
-            let max = 65535 as f32 / tank.max_outflow;
-            let tank_inflow = (tank.inflow * max) as u16;
+            let tank_level = protocol::convert_f32_to_mobdus_u16(0, tank.height, tank.level);
+            let tank_inflow = protocol::convert_f32_to_mobdus_u16(0, tank.max_inflow, tank.inflow);
 
             let (mut reader, mut writer) = stream.split();
 

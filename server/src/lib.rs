@@ -18,6 +18,7 @@ pub mod utils {
             pub inflow_mean: f32,   // the mean inflow if the tank l/s
             pub inflow_stddev: f32, // the stddev of inflow of the tank l/s
             pub inflow: f32,        // the inflow right now
+            pub max_inflow: f32,
             pub areal: f32,         // the areal of the tank mm^2
             pub height: f32,        // the height of the tank mm
             pub outflow: f32,       // the outflow of the tank l/s
