@@ -7,8 +7,12 @@ use tokio::net::{TcpListener, TcpStream};
 use tokio::time::{sleep, Duration};
 use tokio::sync::{watch, broadcast};
 
-use simulation_server_v3::utils::watertank::WaterTank;
-use simulation_server_v3::utils::protocol::{Point, Message, Header};
+use futures_util::StreamExt;
+use futures::sink::SinkExt;
+use tokio_tungstenite::tungstenite::Message;
+
+use watertank_simulation_server::utils::watertank::WaterTank;
+use watertank_simulation_server::utils::protocol::{Point, ReturnMessage, Header};
 
 #[tokio::main]
 async fn main() {
@@ -16,10 +20,13 @@ async fn main() {
     env_logger::init();
     debug!("Log test.");
 
-    // get address as argument or set default
-    let addr = env::args()
+    // Address for gateway to connect to
+    let gw_addr = "0.0.0.0:9977".to_string();
+
+    // Address for the websocket to listen to
+    let ws_addr = env::args()
         .nth(1)
-        .unwrap_or_else(|| "0.0.0.0:9977".to_string());
+        .unwrap_or_else(|| "0.0.0.0:7799".to_string());
 
     // Create a tank
     let tank = WaterTank {
@@ -34,17 +41,23 @@ async fn main() {
     };
 
     // Setup tcplistener to the gateway
-    let listener = TcpListener::bind(&addr).await.unwrap();
-    debug!("Listening on: {}", addr);
+    let gw_listener = TcpListener::bind(&gw_addr).await.unwrap();
+    debug!("GW listening on: {}", gw_addr);
+
+    // Setup tcplistener for the websocket
+    let ws_listener = TcpListener::bind(&ws_addr).await.unwrap();
+    debug!("WS listening on: {}", ws_addr);
 
     // Create a few channels to talk across threads
     let (txout, rxout) = watch::channel(tank);
     let (txin, rxin) = broadcast::channel(2);
 
-    // Start and run the listener and simulation.
-    let t = listen_tcp(listener, rxout.clone(), txin.clone());
+    // Start and run the listeners and simulation.
+    let t = listen_tcp(gw_listener, rxout.clone(), txin.clone());
+    let ws = listen_ws(ws_listener);
     let r = run_simulation(txout, rxin, tank);
     r.await;
+    ws.await;
     t.await;
 }
 
@@ -68,16 +81,43 @@ async fn run_simulation(txout: watch::Sender<WaterTank>, mut rxin: broadcast::Re
     });
 }
 
-async fn listen_tcp(listener: TcpListener, rxout: watch::Receiver<WaterTank>, txin: broadcast::Sender<(u16, u16)>) {
-    
-    loop {
-        let (stream, addr) = listener.accept().await.unwrap();
-        debug!("New connection from {:?}", addr);
-        handle(stream, rxout.clone(), txin.clone()).await;
+async fn listen_ws(listener: TcpListener) {
+    while let Ok((stream, _)) = listener.accept().await {
+        tokio::spawn(handle_ws(stream));
     }
 }
 
-async fn handle(mut stream: TcpStream, rxout: watch::Receiver<WaterTank>, txin: broadcast::Sender<(u16, u16)>) {
+async fn handle_ws(stream: TcpStream) {
+    let addr = stream.peer_addr().expect("connected streams should have a peer address");
+    debug!("Peer address: {}", addr);
+
+    let ws_stream = tokio_tungstenite::accept_async(stream)
+        .await
+        .expect("Error during the websocket handshake occurred");
+
+    debug!("New WebSocket connection: {}", addr);
+
+    let (mut write, _) = ws_stream.split();
+    let mut i = 0;
+
+    loop {
+        sleep(Duration::from_millis(100)).await;
+        i += 1;
+        let message = Message::Text(i.to_string());
+        write.send(message).await.unwrap();
+    }
+    //read.forward(write).await.expect("Failed to forward message")
+}
+
+async fn listen_tcp(listener: TcpListener, rxout: watch::Receiver<WaterTank>, txin: broadcast::Sender<(u16, u16)>) {
+    loop {
+        let (stream, addr) = listener.accept().await.unwrap();
+        debug!("New connection from {:?}", addr);
+        handle_gw(stream, rxout.clone(), txin.clone()).await;
+    }
+}
+
+async fn handle_gw(mut stream: TcpStream, rxout: watch::Receiver<WaterTank>, txin: broadcast::Sender<(u16, u16)>) {
     
     tokio::spawn(async move {
         debug!("Handle new connection");
@@ -117,7 +157,7 @@ async fn handle(mut stream: TcpStream, rxout: watch::Receiver<WaterTank>, txin: 
             txin.send((payload.x as u16, payload.y as u16)).unwrap();
 
             // write something random
-            let hardcoded = Message {
+            let hardcoded = ReturnMessage {
                 msg_type: String::from("input-register"),
                 address: 0,
                 tank_level: tank_level,

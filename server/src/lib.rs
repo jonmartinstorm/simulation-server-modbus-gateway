@@ -61,7 +61,7 @@ pub mod utils {
         }
 
         #[derive(Serialize, Deserialize, Debug)]
-        pub struct Message {
+        pub struct ReturnMessage {
             pub msg_type: String, 
             pub address: i32,
             pub tank_level: u16,
