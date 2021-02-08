@@ -17,6 +17,7 @@ function WebSocketTest(ws, tank) {
         tank.getElementById("inflow-text").textContent = "Inflow: " + tank_values["inflow"].toFixed(1) + "l/s";
         tank.getElementById("height-text").textContent = "Height: " + tank_values["height"].toFixed(0) + "mm";
         tank.getElementById("setpoint-text").textContent = "Setpoint: " + tank_values["set_level"].toFixed(0) + "mm";
+        tank.getElementById("level-text").textContent = "Level: " + tank_values["level"].toFixed(0) + "mm";
         tank.getElementById("outflow-text").textContent = "Outflow: " + tank_values["outflow"].toFixed(1) + "l/s";
 
         let [w_y, w_h] = CalculateLevel(tank_h, tank_y, tank_values["level"], tank_values["height"]);
@@ -48,6 +49,7 @@ tank.addEventListener('load', () => {
     tanksvg = tank.getSVGDocument();
     tanksvg.getElementById("inflow-text").style["font-size"] = "3px";
     tanksvg.getElementById("height-text").style["font-size"] = "3px";
+    tanksvg.getElementById("level-text").style["font-size"] = "3px";
     tanksvg.getElementById("setpoint-text").style["font-size"] = "3px";
     tanksvg.getElementById("outflow-text").style["font-size"] = "3px";
 

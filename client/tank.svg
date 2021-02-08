@@ -25,9 +25,9 @@
      borderopacity="1.0"
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
-     inkscape:zoom="0.98994949"
-     inkscape:cx="243.02073"
-     inkscape:cy="77.672963"
+     inkscape:zoom="3.959798"
+     inkscape:cx="276.02033"
+     inkscape:cy="155.54488"
      inkscape:document-units="px"
      inkscape:current-layer="layer1"
      showgrid="false"
@@ -49,7 +49,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
+        <dc:title />
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -143,13 +143,13 @@
     <text
        xml:space="preserve"
        style="font-style:normal;font-weight:normal;font-size:10.58333302px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332"
-       x="69.356445"
-       y="57.259228"
+       x="68.688271"
+       y="65.143677"
        id="setpoint-text"><tspan
          sodipodi:role="line"
          id="tspan4641"
-         x="69.356445"
-         y="57.259228"
+         x="68.688271"
+         y="65.143677"
          style="font-size:4.93888903px;stroke-width:0.26458332">Setpoint</tspan></text>
     <text
        xml:space="preserve"
@@ -195,5 +195,16 @@
          x="1.3033046"
          y="17.72953"
          style="font-size:4.93888903px;stroke-width:0.26458332">Height</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-weight:normal;font-size:10.58333302px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332"
+       x="68.52816"
+       y="57.061737"
+       id="level-text"><tspan
+         sodipodi:role="line"
+         id="tspan4641-6"
+         x="68.52816"
+         y="57.061737"
+         style="font-size:4.93888855px;stroke-width:0.26458332">Level</tspan></text>
   </g>
 </svg>
