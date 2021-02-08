@@ -57,10 +57,10 @@ async fn main() {
 
     // Start and run the listeners and simulation.
     let t = listen_tcp(gw_listener, rxout.clone(), txin.clone());
-    //let ws = listen_ws(ws_listener);
+    let ws = listen_ws(ws_listener);
     let r = run_simulation(txout, rxin, tank);
     r.await;
-    //ws.await;
+    ws.await;
     t.await;
 }
 
@@ -85,9 +85,11 @@ async fn run_simulation(txout: watch::Sender<WaterTank>, mut rxin: broadcast::Re
 }
 
 async fn listen_ws(listener: TcpListener) {
-    while let Ok((stream, _)) = listener.accept().await {
-        tokio::spawn(handle_ws(stream));
-    }
+    tokio::spawn(async move {
+        while let Ok((stream, _)) = listener.accept().await {
+            tokio::spawn(handle_ws(stream));
+        }
+    }).await.unwrap();
 }
 
 async fn handle_ws(stream: TcpStream) {
