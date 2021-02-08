@@ -54,7 +54,11 @@ pub mod utils {
         use crate::utils::watertank::WaterTank;
         use crate::utils::protocol::Payload;
 
-        pub async fn run_simulation(txout: watch::Sender<WaterTank>, mut rxin: broadcast::Receiver<Payload>, mut tank: WaterTank) {
+        pub async fn run_simulation(
+                    txout: watch::Sender<WaterTank>, 
+                    mut rxin: broadcast::Receiver<Payload>, 
+                    mut tank: WaterTank) 
+            {
             tokio::spawn(async move {
                 debug!("Starting simulation");
                 loop {
@@ -81,7 +85,7 @@ pub mod utils {
         use tokio::net::{TcpListener, TcpStream};
         use tokio::time::{sleep, Duration};
         use tokio::sync::{watch, broadcast};
-        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+        use tokio::io::AsyncWriteExt;
 
         use futures_util::StreamExt;
         use futures::sink::SinkExt;
@@ -91,15 +95,15 @@ pub mod utils {
         use crate::utils::protocol::{Payload, ReturnMessage};
         use crate::utils::watertank::WaterTank;
 
-        pub async fn listen_ws(listener: TcpListener) {
+        pub async fn listen_ws(listener: TcpListener, rxout: watch::Receiver<WaterTank>) {
             tokio::spawn(async move {
                 while let Ok((stream, _)) = listener.accept().await {
-                    handle_ws(stream).await;
+                    handle_ws(stream, rxout.clone()).await;
                 }
             });
         }
 
-        async fn handle_ws(stream: TcpStream) {
+        async fn handle_ws(stream: TcpStream, rxout: watch::Receiver<WaterTank>) {
             tokio::spawn(async move {
                 let addr = stream.peer_addr().expect("connected streams should have a peer address");
                 debug!("Peer address: {}", addr);
@@ -111,13 +115,12 @@ pub mod utils {
                 debug!("New WebSocket connection: {}", addr);
         
                 let (mut write, _) = ws_stream.split();
-                let mut i = 0;
         
                 loop {
                     sleep(Duration::from_millis(100)).await;
-                    i += 1;
-                    let message = Message::Text(i.to_string());
-                    write.send(message).await.unwrap();
+                    let tank = *rxout.borrow();
+                    let msg = Message::Text(serde_json::to_string(&tank).unwrap());
+                    write.send(msg).await.unwrap();
                 }
             });
         }
@@ -180,7 +183,7 @@ pub mod utils {
     pub mod protocol {
         use serde::{Serialize, Deserialize};
         use tokio::net::tcp::ReadHalf;
-        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+        use tokio::io::AsyncReadExt;
 
         #[derive(Serialize, Deserialize, Debug, Copy, Clone)]
         pub struct Payload {

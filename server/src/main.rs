@@ -54,7 +54,7 @@ async fn main() {
 
     // Start and run the listeners and simulation.
     let t = server::listen_tcp(gw_listener, rxout.clone(), txin.clone());
-    let ws = server::listen_ws(ws_listener);
+    let ws = server::listen_ws(ws_listener, rxout.clone());
     let r = simulation::run_simulation(txout, rxin, tank);
     r.await;
     ws.await;
