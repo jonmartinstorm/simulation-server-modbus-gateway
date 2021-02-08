@@ -52,10 +52,10 @@ pub mod utils {
         use tokio::net::tcp::ReadHalf;
         use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
-        #[derive(Serialize, Deserialize, Debug)]
-        pub struct Point {
-            pub x: i32,
-            pub y: i32,
+        #[derive(Serialize, Deserialize, Debug, Copy, Clone)]
+        pub struct Payload {
+            pub outflow: u16,
+            pub setpoint: u16,
         }
 
         #[derive(Serialize, Deserialize, Debug)]

@@ -12,7 +12,7 @@ use futures::sink::SinkExt;
 use tokio_tungstenite::tungstenite::Message;
 
 use watertank_simulation_server::utils::watertank::WaterTank;
-use watertank_simulation_server::utils::protocol::{Point, ReturnMessage, Header};
+use watertank_simulation_server::utils::protocol::{Payload, ReturnMessage, Header};
 use watertank_simulation_server::utils::protocol;
 
 use std::{thread, time};
@@ -166,10 +166,10 @@ async fn handle_gw(mut stream: TcpStream, rxout: watch::Receiver<WaterTank>, txi
             let mut payload = vec![0; header.len as usize];
             reader.read(&mut payload).await.unwrap();
             let payload_string = std::str::from_utf8(&payload).unwrap();
-            let payload: Point = serde_json::from_str(payload_string).unwrap();
+            let payload: Payload = serde_json::from_str(payload_string).unwrap();
             debug!("Payload {:?}", payload);
 
-            txin.send((payload.x as u16, payload.y as u16)).unwrap();
+            txin.send((payload.outflow as u16, payload.setpoint as u16)).unwrap();
 
             // write something random
             let hardcoded = ReturnMessage {

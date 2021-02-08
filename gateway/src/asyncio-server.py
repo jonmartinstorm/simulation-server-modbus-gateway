@@ -27,8 +27,8 @@ def talk_to_simulation(read_values, sock):
     #sock.connect(("127.0.0.1", 9977))
 
     payload = {
-        "x": read_values[0], 
-        "y": read_values[1],  
+        "outflow": read_values[0], 
+        "setpoint": read_values[1],  
     }
     payload_encoded = json.dumps(payload, separators=(',', ':'))    
     header = {
