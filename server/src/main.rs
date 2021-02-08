@@ -57,10 +57,10 @@ async fn main() {
 
     // Start and run the listeners and simulation.
     let t = listen_tcp(gw_listener, rxout.clone(), txin.clone());
-    let ws = listen_ws(ws_listener);
+    //let ws = listen_ws(ws_listener);
     let r = run_simulation(txout, rxin, tank);
     r.await;
-    ws.await;
+    //ws.await;
     t.await;
 }
 
@@ -113,11 +113,12 @@ async fn handle_ws(stream: TcpStream) {
 }
 
 async fn listen_tcp(listener: TcpListener, rxout: watch::Receiver<WaterTank>, txin: broadcast::Sender<(u16, u16)>) {
-    loop {
-        let (stream, addr) = listener.accept().await.unwrap();
-        debug!("New connection from {:?}", addr);
-        handle_gw(stream, rxout.clone(), txin.clone()).await;
-    }
+    tokio::spawn(async move {
+        while let Ok((stream, addr)) = listener.accept().await {
+            debug!("New connection from {:?}", addr);
+            handle_gw(stream, rxout.clone(), txin.clone()).await;
+        }
+    }).await.unwrap();
 }
 
 async fn handle_gw(mut stream: TcpStream, rxout: watch::Receiver<WaterTank>, txin: broadcast::Sender<(u16, u16)>) {
@@ -128,8 +129,8 @@ async fn handle_gw(mut stream: TcpStream, rxout: watch::Receiver<WaterTank>, txi
         // In a loop, read data from the socket and write the data back.
         loop {
             let tank = *rxout.borrow();
-            let tank_level = protocol::convert_f32_to_mobdus_u16(0, tank.height, tank.level);
-            let tank_inflow = protocol::convert_f32_to_mobdus_u16(0, tank.max_inflow, tank.inflow);
+            let tank_level = protocol::convert_f32_to_mobdus_u16(0.0, tank.height, tank.level);
+            let tank_inflow = protocol::convert_f32_to_mobdus_u16(0.0, tank.max_inflow, tank.inflow);
 
             let (mut reader, mut writer) = stream.split();
 
@@ -139,13 +140,15 @@ async fn handle_gw(mut stream: TcpStream, rxout: watch::Receiver<WaterTank>, txi
                 0 => {break},
                 _ => {},
             };
-            reader.read(&mut len).await.unwrap();
+
+            let header = protocol::read_header(len, &mut reader).await;
+            //reader.read(&mut len).await.unwrap();
 
             // read header
-            let mut header = vec![0; len[0] as usize];
-            reader.read(&mut header).await.unwrap();
-            let header_string = std::str::from_utf8(&header).unwrap();  
-            let header: Header = serde_json::from_str(header_string).unwrap();
+            //let mut header = vec![0; len[0] as usize];
+            //reader.read(&mut header).await.unwrap();
+            //let header_string = std::str::from_utf8(&header).unwrap();  
+            //let header: Header = serde_json::from_str(header_string).unwrap();
 
             // read payload
             let mut payload = vec![0; header.len as usize];

@@ -49,6 +49,8 @@ pub mod utils {
 
     pub mod protocol {
         use serde::{Serialize, Deserialize};
+        use tokio::net::tcp::ReadHalf;
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
         #[derive(Serialize, Deserialize, Debug)]
         pub struct Point {
@@ -73,6 +75,15 @@ pub mod utils {
         pub fn convert_f32_to_mobdus_u16(_min: f32, max: f32, value: f32) -> u16{
             let max = 65535 as f32 / max;
             (value as f32 * max) as u16
+        }
+
+        pub async fn read_header(mut len: Vec<u8>, reader: &mut ReadHalf<'_>) -> Header {
+            reader.read(&mut len).await.unwrap();
+            // read header
+            let mut header = vec![0; len[0] as usize];
+            reader.read(&mut header).await.unwrap();
+            let header_string = std::str::from_utf8(&header).unwrap();  
+            serde_json::from_str(header_string).unwrap()
         }
     }
 }
