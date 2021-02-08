@@ -80,10 +80,16 @@ pub mod utils {
         use log::debug;
         use tokio::net::{TcpListener, TcpStream};
         use tokio::time::{sleep, Duration};
+        use tokio::sync::{watch, broadcast};
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
         use futures_util::StreamExt;
         use futures::sink::SinkExt;
         use tokio_tungstenite::tungstenite::Message;
+
+        use crate::utils::protocol;
+        use crate::utils::protocol::{Payload, ReturnMessage};
+        use crate::utils::watertank::WaterTank;
 
         pub async fn listen_ws(listener: TcpListener) {
             tokio::spawn(async move {
@@ -115,6 +121,60 @@ pub mod utils {
                 }
             });
         }
+
+        pub async fn listen_tcp(listener: TcpListener, rxout: watch::Receiver<WaterTank>, txin: broadcast::Sender<Payload>) {
+            tokio::spawn(async move {
+                while let Ok((stream, addr)) = listener.accept().await {
+                    debug!("New connection from {:?}", addr);
+                    handle_gw(stream, rxout.clone(), txin.clone()).await;
+                }
+            });
+        }
+
+        async fn handle_gw(mut stream: TcpStream, rxout: watch::Receiver<WaterTank>, txin: broadcast::Sender<Payload>) {
+    
+            tokio::spawn(async move {
+                debug!("Handle new connection");
+        
+                // In a loop, read data from the socket and write the data back.
+                loop {
+                    let tank = *rxout.borrow();
+                    let tank_level = protocol::convert_f32_to_mobdus_u16(0.0, tank.height, tank.level);
+                    let tank_inflow = protocol::convert_f32_to_mobdus_u16(0.0, tank.max_inflow, tank.inflow);
+        
+                    let (mut reader, mut writer) = stream.split();
+        
+                    // read header length
+                    let mut len = vec![0; 1];
+                    match reader.peek(&mut len).await.unwrap() {
+                        0 => {break},
+                        _ => {},
+                    };
+        
+                    let header = protocol::read_header(len, &mut reader).await;
+        
+                    // read payload
+                    let payload = protocol::read_payload(header, &mut reader).await;
+                    
+                    debug!("Payload {:?}", payload);
+        
+                    txin.send(payload).unwrap();
+        
+                    // write something random
+                    let hardcoded = ReturnMessage {
+                        msg_type: String::from("input-register"),
+                        address: 0,
+                        tank_level: tank_level,
+                        tank_inflow: tank_inflow,
+                    };
+                    let mut hardcoded = serde_json::to_string(&hardcoded).unwrap();
+                    debug!("Sending {}", hardcoded);
+                    hardcoded.push('\n');
+                    writer.write_all(hardcoded.as_bytes()).await.unwrap();
+                }
+            });
+        }
+
     }
 
     pub mod protocol {
