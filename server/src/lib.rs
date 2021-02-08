@@ -144,6 +144,13 @@ pub mod utils {
                     let tank = *rxout.borrow();
                     let tank_level = protocol::convert_f32_to_mobdus_u16(0.0, tank.height, tank.level);
                     let tank_inflow = protocol::convert_f32_to_mobdus_u16(0.0, tank.max_inflow, tank.inflow);
+
+                    let message = ReturnMessage {
+                        msg_type: String::from("input-register"),
+                        address: 0,
+                        tank_level: tank_level,
+                        tank_inflow: tank_inflow,
+                    };
         
                     let (mut reader, mut writer) = stream.split();
         
@@ -158,22 +165,15 @@ pub mod utils {
         
                     // read payload
                     let payload = protocol::read_payload(header, &mut reader).await;
-                    
                     debug!("Payload {:?}", payload);
         
+                    // send payload to simulation
                     txin.send(payload).unwrap();
         
-                    // write something random
-                    let hardcoded = ReturnMessage {
-                        msg_type: String::from("input-register"),
-                        address: 0,
-                        tank_level: tank_level,
-                        tank_inflow: tank_inflow,
-                    };
-                    let mut hardcoded = serde_json::to_string(&hardcoded).unwrap();
-                    debug!("Sending {}", hardcoded);
-                    hardcoded.push('\n');
-                    writer.write_all(hardcoded.as_bytes()).await.unwrap();
+                    let mut message = serde_json::to_string(&message).unwrap();
+                    debug!("Sending {}", message);
+                    message.push('\n');
+                    writer.write_all(message.as_bytes()).await.unwrap();
                 }
             });
         }
