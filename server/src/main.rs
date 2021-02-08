@@ -12,7 +12,7 @@ use futures::sink::SinkExt;
 use tokio_tungstenite::tungstenite::Message;
 
 use watertank_simulation_server::utils::watertank::WaterTank;
-use watertank_simulation_server::utils::protocol::{Payload, ReturnMessage, Header};
+use watertank_simulation_server::utils::protocol::{Payload, ReturnMessage};
 use watertank_simulation_server::utils::protocol;
 
 use std::{thread, time};
@@ -21,7 +21,6 @@ use std::{thread, time};
 async fn main() {
     // Setup logging, run with RUST_LOG=debug to see log
     env_logger::init();
-    debug!("Log test.");
 
     // Address for gateway to connect to
     let gw_addr = "0.0.0.0:9977".to_string();
@@ -72,7 +71,7 @@ async fn main() {
     }
 }
 
-async fn run_simulation(txout: watch::Sender<WaterTank>, mut rxin: broadcast::Receiver<(u16, u16)>, mut tank: WaterTank) {
+async fn run_simulation(txout: watch::Sender<WaterTank>, mut rxin: broadcast::Receiver<Payload>, mut tank: WaterTank) {
     tokio::spawn(async move {
         debug!("Starting simulation");
         loop {
@@ -80,8 +79,8 @@ async fn run_simulation(txout: watch::Sender<WaterTank>, mut rxin: broadcast::Re
             sleep(Duration::from_millis(300)).await;
 
             // Get and update outflow control setpoint
-            let (outflow, _r) = rxin.recv().await.unwrap();
-            tank.outflow = (outflow as f32 / 65535.0) as f32 * 40.0;
+            let payload = rxin.recv().await.unwrap();
+            tank.outflow = (payload.outflow as f32 / 65535.0) as f32 * 40.0; // create helper function
 
 
             tank.update_inflow();
@@ -124,7 +123,7 @@ async fn handle_ws(stream: TcpStream) {
     });
 }
 
-async fn listen_tcp(listener: TcpListener, rxout: watch::Receiver<WaterTank>, txin: broadcast::Sender<(u16, u16)>) {
+async fn listen_tcp(listener: TcpListener, rxout: watch::Receiver<WaterTank>, txin: broadcast::Sender<Payload>) {
     tokio::spawn(async move {
         while let Ok((stream, addr)) = listener.accept().await {
             debug!("New connection from {:?}", addr);
@@ -133,7 +132,7 @@ async fn listen_tcp(listener: TcpListener, rxout: watch::Receiver<WaterTank>, tx
     });
 }
 
-async fn handle_gw(mut stream: TcpStream, rxout: watch::Receiver<WaterTank>, txin: broadcast::Sender<(u16, u16)>) {
+async fn handle_gw(mut stream: TcpStream, rxout: watch::Receiver<WaterTank>, txin: broadcast::Sender<Payload>) {
     
     tokio::spawn(async move {
         debug!("Handle new connection");
@@ -157,14 +156,10 @@ async fn handle_gw(mut stream: TcpStream, rxout: watch::Receiver<WaterTank>, txi
 
             // read payload
             let payload = protocol::read_payload(header, &mut reader).await;
-            //let mut payload = vec![0; header.len as usize];
-            //reader.read(&mut payload).await.unwrap();
-            //let payload_string = std::str::from_utf8(&payload).unwrap();
-            //let payload: Payload = serde_json::from_str(payload_string).unwrap();
             
             debug!("Payload {:?}", payload);
 
-            txin.send((payload.outflow as u16, payload.setpoint as u16)).unwrap();
+            txin.send(payload).unwrap();
 
             // write something random
             let hardcoded = ReturnMessage {
