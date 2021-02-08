@@ -15,6 +15,8 @@ use watertank_simulation_server::utils::watertank::WaterTank;
 use watertank_simulation_server::utils::protocol::{Payload, ReturnMessage};
 use watertank_simulation_server::utils::protocol;
 
+use watertank_simulation_server::utils::simulation;
+
 use std::{thread, time};
 
 #[tokio::main]
@@ -59,7 +61,7 @@ async fn main() {
     // Start and run the listeners and simulation.
     let t = listen_tcp(gw_listener, rxout.clone(), txin.clone());
     let ws = listen_ws(ws_listener);
-    let r = run_simulation(txout, rxin, tank);
+    let r = simulation::run_simulation(txout, rxin, tank);
     r.await;
     ws.await;
     t.await;
@@ -69,27 +71,6 @@ async fn main() {
     loop {
         thread::sleep(delay);
     }
-}
-
-async fn run_simulation(txout: watch::Sender<WaterTank>, mut rxin: broadcast::Receiver<Payload>, mut tank: WaterTank) {
-    tokio::spawn(async move {
-        debug!("Starting simulation");
-        loop {
-            // Wait so we dont run too fast
-            sleep(Duration::from_millis(300)).await;
-
-            // Get and update outflow control setpoint
-            let payload = rxin.recv().await.unwrap();
-            tank.outflow = (payload.outflow as f32 / 65535.0) as f32 * 40.0; // create helper function
-
-
-            tank.update_inflow();
-            tank.update_level(0.3);
-            
-            txout.send(tank).unwrap();
-            debug!("Tank: {:?}", tank);
-        }
-    });
 }
 
 async fn listen_ws(listener: TcpListener) {

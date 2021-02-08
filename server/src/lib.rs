@@ -47,6 +47,39 @@ pub mod utils {
         }
     }
 
+    pub mod simulation {
+        use log::debug;
+        use tokio::sync::{watch, broadcast};
+        use tokio::time::{sleep, Duration};
+        use crate::utils::watertank::WaterTank;
+        use crate::utils::protocol::Payload;
+
+        pub async fn run_simulation(txout: watch::Sender<WaterTank>, mut rxin: broadcast::Receiver<Payload>, mut tank: WaterTank) {
+            tokio::spawn(async move {
+                debug!("Starting simulation");
+                loop {
+                    // Wait so we dont run too fast
+                    sleep(Duration::from_millis(300)).await;
+        
+                    // Get and update outflow control setpoint
+                    let payload = rxin.recv().await.unwrap();
+                    tank.outflow = (payload.outflow as f32 / 65535.0) as f32 * 40.0; // create helper function
+        
+        
+                    tank.update_inflow();
+                    tank.update_level(0.3);
+                    
+                    txout.send(tank).unwrap();
+                    debug!("Tank: {:?}", tank);
+                }
+            });
+        }
+    }
+
+    pub mod server {
+
+    }
+
     pub mod protocol {
         use serde::{Serialize, Deserialize};
         use tokio::net::tcp::ReadHalf;
