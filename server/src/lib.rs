@@ -6,7 +6,7 @@ pub mod utils {
         use rand_distr::{Normal, Distribution};
 
         // How many cubic MM in one liter, Thousand liters in one cubic M. 
-        const L_TO_CUBIC_MM: i64 = 1000000;
+        const L_TO_CUBIC_MM: f32 = 1000000.0;
         /// A water tank struct
         /// There is flow into the water tank a size of the water tank and a level we want the water to be
         /// There is an areal of the water tank, it is a box watertank with a hight
@@ -14,33 +14,34 @@ pub mod utils {
         /// 
         #[derive(Serialize, Deserialize, Debug, Copy, Clone)]
         pub struct WaterTank {
-            pub level: i64,         // the water level of the tank mm. 
+            pub level: f32,         // the water level of the tank mm. 
             pub inflow_mean: f32,   // the mean inflow if the tank l/s
             pub inflow_stddev: f32, // the stddev of inflow of the tank l/s
-            pub inflow: f64,        // the inflow right now
-            pub areal: i64,         // the areal of the tank mm^2
-            pub height: i64,        // the height of the tank mm
-            pub outflow: f64,       // the outflow of the tank l/s
-            pub set_level: i64,     // the wanted level of the tank mm, Real value? or 4 - 20 mA?
+            pub inflow: f32,        // the inflow right now
+            pub areal: f32,         // the areal of the tank mm^2
+            pub height: f32,        // the height of the tank mm
+            pub outflow: f32,       // the outflow of the tank l/s
+            pub max_outflow: f32,
+            pub set_level: f32,     // the wanted level of the tank mm, Real value? or 4 - 20 mA?
         }
     
         impl WaterTank {
-            fn _volume(&self) -> i64 {
+            fn _volume(&self) -> f32 {
                 self.areal * self.height
             }
     
             pub fn update_level(&mut self, seconds_passed: f32) {
                 // water volume of the tank = areal * level
                 // change in volume = volume + (inflow - outflow) * seconds_passed
-                let volume = (self.areal * self.level) as f64 + ((self.inflow - self.outflow) * seconds_passed as f64 * L_TO_CUBIC_MM as f64);
-                self.level = (volume / self.areal as f64) as i64;
+                let volume = (self.areal * self.level) + ((self.inflow - self.outflow) * seconds_passed * L_TO_CUBIC_MM );
+                self.level = volume / self.areal;
             }
     
             pub fn update_inflow(&mut self) {
                 let mut rng = thread_rng();
                 let normal = Normal::new(self.inflow_mean, self.inflow_stddev).unwrap();
                 let v = normal.sample(&mut rng);
-                self.inflow = v as f64;
+                self.inflow = v;
             }
         }
     }
@@ -66,6 +67,11 @@ pub mod utils {
             pub address: i32,
             pub tank_level: u16,
             pub tank_inflow: u16,
+        }
+
+        pub fn convert_f32_to_mobdus_u16(_min: f32, max: f32, value: f32) -> u16{
+            let max = 65535 as f32 / max;
+            (value as f32 * max) as u16
         }
     }
 }

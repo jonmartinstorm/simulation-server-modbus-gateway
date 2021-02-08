@@ -13,6 +13,7 @@ use tokio_tungstenite::tungstenite::Message;
 
 use watertank_simulation_server::utils::watertank::WaterTank;
 use watertank_simulation_server::utils::protocol::{Point, ReturnMessage, Header};
+use watertank_simulation_server::utils::protocol;
 
 #[tokio::main]
 async fn main() {
@@ -30,14 +31,15 @@ async fn main() {
 
     // Create a tank
     let tank = WaterTank {
-        level: 1000,
-        areal: 1000000,
-        height: 2000,
+        level: 1000.0,
+        areal: 1000000.0,
+        height: 2000.0,
         inflow: 20.0,
         inflow_mean: 20.0,
         inflow_stddev: 3.0,
         outflow: 20.0,
-        set_level: 1000,
+        max_outflow: 40.0,
+        set_level: 1000.0,
     };
 
     // Setup tcplistener to the gateway
@@ -69,7 +71,7 @@ async fn run_simulation(txout: watch::Sender<WaterTank>, mut rxin: broadcast::Re
 
             // Get and update outflow control setpoint
             let (outflow, _r) = rxin.recv().await.unwrap();
-            tank.outflow = (outflow as f32 / 65535.0) as f64 * 40.0;
+            tank.outflow = (outflow as f32 / 65535.0) as f32 * 40.0;
 
 
             tank.update_inflow();
@@ -125,11 +127,11 @@ async fn handle_gw(mut stream: TcpStream, rxout: watch::Receiver<WaterTank>, txi
         // In a loop, read data from the socket and write the data back.
         loop {
             let tank = *rxout.borrow();
-            let max = 65535 as f32 / tank.height as f32;
-            let tank_level = (tank.level as f32 * max) as u16;
+            let max = 65535 as f32 / tank.height;
+            let tank_level = (tank.level * max) as u16;
             
-            let max = 65535 as f32 / 40 as f32;
-            let tank_inflow = (tank.inflow as f32 * max) as u16;
+            let max = 65535 as f32 / tank.max_outflow;
+            let tank_inflow = (tank.inflow * max) as u16;
 
             let (mut reader, mut writer) = stream.split();
 
