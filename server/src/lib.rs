@@ -117,7 +117,7 @@ pub mod utils {
                 let (mut write, _) = ws_stream.split();
         
                 loop {
-                    sleep(Duration::from_millis(100)).await;
+                    sleep(Duration::from_millis(500)).await;
                     let tank = *rxout.borrow();
                     let msg = Message::Text(serde_json::to_string(&tank).unwrap());
                     write.send(msg).await.unwrap();
