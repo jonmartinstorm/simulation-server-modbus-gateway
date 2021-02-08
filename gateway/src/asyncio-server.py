@@ -15,9 +15,8 @@ FORMAT = ('%(asctime)-15s %(threadName)-15s'
           ' %(levelname)-8s %(module)-15s:%(lineno)-8s %(message)s')
 logging.basicConfig(format=FORMAT)
 log = logging.getLogger()
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.CRITICAL)
 
-import random
 import socket
 import json
 
@@ -99,7 +98,7 @@ def run_server():
     # run the server you want after creating tasks
 
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock.connect(("127.0.0.1", 9977))
+    sock.connect(("simulation", 9977))
     log.debug(f"Connected to: {sock}")
 
     loop = asyncio.get_event_loop()

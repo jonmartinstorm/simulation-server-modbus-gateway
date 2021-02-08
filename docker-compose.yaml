@@ -1,0 +1,19 @@
+version: '3'
+services:
+  simulation:
+    container_name: watertank-simulation-server
+    build: ./server
+    ports: 
+      - "7799:7799"
+  gateway:
+    container_name: watertank-simulation-gateway
+    build: ./gateway
+    ports:
+      - "5020:5020"
+  client:
+    image: flashspys/nginx-static
+    container_name: watertank-simulation-client
+    ports:
+      - 7000:80
+    volumes: 
+      - ./client:/static
