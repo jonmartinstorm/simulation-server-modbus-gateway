@@ -85,5 +85,12 @@ pub mod utils {
             let header_string = std::str::from_utf8(&header).unwrap();  
             serde_json::from_str(header_string).unwrap()
         }
+
+        pub async fn read_payload(header: Header, reader: &mut ReadHalf<'_>) -> Payload {
+            let mut payload = vec![0; header.len as usize];
+            reader.read(&mut payload).await.unwrap();
+            let payload_string = std::str::from_utf8(&payload).unwrap();
+            serde_json::from_str(payload_string).unwrap()
+        }
     }
 }

@@ -154,19 +154,14 @@ async fn handle_gw(mut stream: TcpStream, rxout: watch::Receiver<WaterTank>, txi
             };
 
             let header = protocol::read_header(len, &mut reader).await;
-            //reader.read(&mut len).await.unwrap();
-
-            // read header
-            //let mut header = vec![0; len[0] as usize];
-            //reader.read(&mut header).await.unwrap();
-            //let header_string = std::str::from_utf8(&header).unwrap();  
-            //let header: Header = serde_json::from_str(header_string).unwrap();
 
             // read payload
-            let mut payload = vec![0; header.len as usize];
-            reader.read(&mut payload).await.unwrap();
-            let payload_string = std::str::from_utf8(&payload).unwrap();
-            let payload: Payload = serde_json::from_str(payload_string).unwrap();
+            let payload = protocol::read_payload(header, &mut reader).await;
+            //let mut payload = vec![0; header.len as usize];
+            //reader.read(&mut payload).await.unwrap();
+            //let payload_string = std::str::from_utf8(&payload).unwrap();
+            //let payload: Payload = serde_json::from_str(payload_string).unwrap();
+            
             debug!("Payload {:?}", payload);
 
             txin.send((payload.outflow as u16, payload.setpoint as u16)).unwrap();
