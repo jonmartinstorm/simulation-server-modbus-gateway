@@ -77,7 +77,36 @@ pub mod utils {
     }
 
     pub mod server {
+        use log::debug;
+        use tokio::net::{TcpListener, TcpStream};
+        use tokio::time::{sleep, Duration};
+        
+        use futures_util::StreamExt;
+        use futures::sink::SinkExt;
+        use tokio_tungstenite::tungstenite::Message;
 
+        pub async fn handle_ws(stream: TcpStream) {
+            tokio::spawn(async move {
+                let addr = stream.peer_addr().expect("connected streams should have a peer address");
+                debug!("Peer address: {}", addr);
+        
+                let ws_stream = tokio_tungstenite::accept_async(stream)
+                    .await
+                    .expect("Error during the websocket handshake occurred");
+        
+                debug!("New WebSocket connection: {}", addr);
+        
+                let (mut write, _) = ws_stream.split();
+                let mut i = 0;
+        
+                loop {
+                    sleep(Duration::from_millis(100)).await;
+                    i += 1;
+                    let message = Message::Text(i.to_string());
+                    write.send(message).await.unwrap();
+                }
+            });
+        }
     }
 
     pub mod protocol {
