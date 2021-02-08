@@ -4,12 +4,7 @@ use log::debug;
 
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream};
-use tokio::time::{sleep, Duration};
 use tokio::sync::{watch, broadcast};
-
-use futures_util::StreamExt;
-use futures::sink::SinkExt;
-use tokio_tungstenite::tungstenite::Message;
 
 use watertank_simulation_server::utils::watertank::WaterTank;
 use watertank_simulation_server::utils::protocol::{Payload, ReturnMessage};
@@ -62,7 +57,7 @@ async fn main() {
 
     // Start and run the listeners and simulation.
     let t = listen_tcp(gw_listener, rxout.clone(), txin.clone());
-    let ws = listen_ws(ws_listener);
+    let ws = server::listen_ws(ws_listener);
     let r = simulation::run_simulation(txout, rxin, tank);
     r.await;
     ws.await;
@@ -73,14 +68,6 @@ async fn main() {
     loop {
         thread::sleep(delay);
     }
-}
-
-async fn listen_ws(listener: TcpListener) {
-    tokio::spawn(async move {
-        while let Ok((stream, _)) = listener.accept().await {
-            server::handle_ws(stream).await;
-        }
-    });
 }
 
 async fn listen_tcp(listener: TcpListener, rxout: watch::Receiver<WaterTank>, txin: broadcast::Sender<Payload>) {

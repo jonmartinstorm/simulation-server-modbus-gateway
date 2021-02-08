@@ -80,12 +80,20 @@ pub mod utils {
         use log::debug;
         use tokio::net::{TcpListener, TcpStream};
         use tokio::time::{sleep, Duration};
-        
+
         use futures_util::StreamExt;
         use futures::sink::SinkExt;
         use tokio_tungstenite::tungstenite::Message;
 
-        pub async fn handle_ws(stream: TcpStream) {
+        pub async fn listen_ws(listener: TcpListener) {
+            tokio::spawn(async move {
+                while let Ok((stream, _)) = listener.accept().await {
+                    handle_ws(stream).await;
+                }
+            });
+        }
+
+        async fn handle_ws(stream: TcpStream) {
             tokio::spawn(async move {
                 let addr = stream.peer_addr().expect("connected streams should have a peer address");
                 debug!("Peer address: {}", addr);
