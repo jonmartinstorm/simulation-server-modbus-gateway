@@ -15,6 +15,8 @@ use watertank_simulation_server::utils::watertank::WaterTank;
 use watertank_simulation_server::utils::protocol::{Point, ReturnMessage, Header};
 use watertank_simulation_server::utils::protocol;
 
+use std::{thread, time};
+
 #[tokio::main]
 async fn main() {
     // Setup logging, run with RUST_LOG=debug to see log
@@ -62,10 +64,17 @@ async fn main() {
     r.await;
     ws.await;
     t.await;
+    
+    // run forever, but with a small delay so we dont overheat our pc.
+    let delay = time::Duration::from_millis(20);
+    loop {
+        thread::sleep(delay);
+    }
 }
 
 async fn run_simulation(txout: watch::Sender<WaterTank>, mut rxin: broadcast::Receiver<(u16, u16)>, mut tank: WaterTank) {
     tokio::spawn(async move {
+        debug!("Starting simulation");
         loop {
             // Wait so we dont run too fast
             sleep(Duration::from_millis(300)).await;
@@ -87,31 +96,32 @@ async fn run_simulation(txout: watch::Sender<WaterTank>, mut rxin: broadcast::Re
 async fn listen_ws(listener: TcpListener) {
     tokio::spawn(async move {
         while let Ok((stream, _)) = listener.accept().await {
-            tokio::spawn(handle_ws(stream));
+            handle_ws(stream).await;
         }
-    }).await.unwrap();
+    });
 }
 
 async fn handle_ws(stream: TcpStream) {
-    let addr = stream.peer_addr().expect("connected streams should have a peer address");
-    debug!("Peer address: {}", addr);
+    tokio::spawn(async move {
+        let addr = stream.peer_addr().expect("connected streams should have a peer address");
+        debug!("Peer address: {}", addr);
 
-    let ws_stream = tokio_tungstenite::accept_async(stream)
-        .await
-        .expect("Error during the websocket handshake occurred");
+        let ws_stream = tokio_tungstenite::accept_async(stream)
+            .await
+            .expect("Error during the websocket handshake occurred");
 
-    debug!("New WebSocket connection: {}", addr);
+        debug!("New WebSocket connection: {}", addr);
 
-    let (mut write, _) = ws_stream.split();
-    let mut i = 0;
+        let (mut write, _) = ws_stream.split();
+        let mut i = 0;
 
-    loop {
-        sleep(Duration::from_millis(100)).await;
-        i += 1;
-        let message = Message::Text(i.to_string());
-        write.send(message).await.unwrap();
-    }
-    //read.forward(write).await.expect("Failed to forward message")
+        loop {
+            sleep(Duration::from_millis(100)).await;
+            i += 1;
+            let message = Message::Text(i.to_string());
+            write.send(message).await.unwrap();
+        }
+    });
 }
 
 async fn listen_tcp(listener: TcpListener, rxout: watch::Receiver<WaterTank>, txin: broadcast::Sender<(u16, u16)>) {
@@ -120,7 +130,7 @@ async fn listen_tcp(listener: TcpListener, rxout: watch::Receiver<WaterTank>, tx
             debug!("New connection from {:?}", addr);
             handle_gw(stream, rxout.clone(), txin.clone()).await;
         }
-    }).await.unwrap();
+    });
 }
 
 async fn handle_gw(mut stream: TcpStream, rxout: watch::Receiver<WaterTank>, txin: broadcast::Sender<(u16, u16)>) {
