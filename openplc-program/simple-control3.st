@@ -2,8 +2,8 @@ PROGRAM Hello_World
   VAR
     level AT %IW101 : UINT;
     outflow AT %QW100 : UINT;
-    max_level AT %QW1 : REAL := 1200.0;
-    min_level AT %QW2 : REAL := 800.0;
+    max_level AT %QW1 : UINT := 1200;
+    min_level AT %QW2 : UINT := 800;
   END_VAR
   VAR
     convert_to_level : REAL := 32.768;
@@ -12,7 +12,9 @@ PROGRAM Hello_World
     high_flow : REAL := 25.0;
     UINT_TO_REAL3_OUT : REAL;
     DIV10_OUT : REAL;
+    UINT_TO_REAL6_OUT : REAL;
     GT11_OUT : BOOL;
+    UINT_TO_REAL9_OUT : REAL;
     LT13_OUT : BOOL;
     SEL16_OUT : REAL;
     SEL15_OUT : REAL;
@@ -22,8 +24,10 @@ PROGRAM Hello_World
 
   UINT_TO_REAL3_OUT := UINT_TO_REAL(level);
   DIV10_OUT := DIV(UINT_TO_REAL3_OUT, convert_to_level);
-  GT11_OUT := GT(DIV10_OUT, max_level);
-  LT13_OUT := LT(DIV10_OUT, min_level);
+  UINT_TO_REAL6_OUT := UINT_TO_REAL(max_level);
+  GT11_OUT := GT(DIV10_OUT, UINT_TO_REAL6_OUT);
+  UINT_TO_REAL9_OUT := UINT_TO_REAL(min_level);
+  LT13_OUT := LT(DIV10_OUT, UINT_TO_REAL9_OUT);
   SEL16_OUT := SEL(LT13_OUT, SEL15_OUT, low_flow);
   SEL15_OUT := SEL(GT11_OUT, SEL16_OUT, high_flow);
   MUL8_OUT := MUL(SEL15_OUT, convert_from_flow);
