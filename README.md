@@ -7,8 +7,10 @@ From root folder:
 ```
 docker-compose up -d
 ```
-
 You can also run it directly from each folder if you know what you are doing.
+
+### Client server for simulation view
+To get the client server to work you need to change the address in `index.js` to point to the your server.
 
 ## Gateway registers
 - Input register 1 holds the value of the tank. Divide by 32.768 to get the value in mm.
@@ -17,7 +19,15 @@ You can also run it directly from each folder if you know what you are doing.
 
 ## TODO
 - [ ] Explain how to run it directly
-- [ ] Refactor
-- [ ] Improve comments
-- [ ] Clean up and refactor gateway
-- [ ] Improve web-interface
+- [ ] Simulation server code
+  - [ ] Refactor
+  - [ ] Add proper error handling
+  - [ ] Improve comments
+- [ ] Gateway code
+  - [ ] Clean up and refactor gateway
+- [ ] Web-interface code
+  - [ ] Refactor and cleanup
+  - [ ] Improve web-interface
+- [ ] Write a short example of setup in GNS3
+  - [ ] Explain OpenPLC setup
+  - [ ] Explain Node-Red (SCADA-HMI) setup
