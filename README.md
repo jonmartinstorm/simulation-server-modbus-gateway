@@ -1,6 +1,9 @@
 # simulation-server-modbus-gateway
 A simulation server for a water tank with a modbus gateway for control
 
+- The server is written in rust by me
+- The gateway is written in python3 using pymodbus and is a heavily modified version of one of the pymodbus examples
+
 ## How to run
 ### Docker
 Install docker and docker-compose.
